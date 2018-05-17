@@ -5,3 +5,4 @@ php7.2.5
 A php extension to hook internal function name and args
 ## change log
 2018.5.17 Add ZEND_DO_ICALL hook
+          Add ZEND_INCLUDE_OR_EVAL
