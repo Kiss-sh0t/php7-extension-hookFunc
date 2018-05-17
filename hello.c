@@ -76,7 +76,7 @@ static struct {
 
 
 //PHP7 user defined hook func
-static int do_fcall_handle(ZEND_OPCODE_HANDLER_ARGS){
+static int do_icall_handle(ZEND_OPCODE_HANDLER_ARGS){
 	//get file name	
 	char *cgi_name = (char*)zend_get_executed_filename(TSRMLS_C);
 	php_printf("[!] In file %s, ",cgi_name);
@@ -85,7 +85,7 @@ static int do_fcall_handle(ZEND_OPCODE_HANDLER_ARGS){
 	
 
 	zend_string *funcName = EG(current_execute_data)->call->func->common.function_name;
-	//if(strcmp(ZSTR_VAL(funcName), "system")==0){
+	//if(strcmp(ZSTR_VAL(funcName), "system")==0){#hook special func
 		php_printf("hooked `%s`, ",ZSTR_VAL(funcName));
 
 		int arg_count = EG(current_execute_data)->call->This.u2.num_args;
@@ -126,6 +126,13 @@ static int do_fcall_handle(ZEND_OPCODE_HANDLER_ARGS){
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
+//do_include_or_eval_handler
+int do_eval_handle(ZEND_OPCODE_HANDLER_ARGS){
+	zval *inc_filename;
+	inc_filename = RT_CONSTANT_EX(EG(current_execute_data)->func->op_array.literals ,EG(current_execute_data)->opline->op1);
+	php_printf("[!] Hook eval like ins, `%s`\n", Z_STRVAL_P(inc_filename));
+	return ZEND_USER_OPCODE_DISPATCH;
+}
 
 //PHP7 PHP_FUNCTION hook
 static void php_override_func(const char* name, size_t len, php_func handler, php_func *stash){
@@ -192,9 +199,7 @@ PHP_MINIT_FUNCTION(hello)
 	REGISTER_INI_ENTRIES();
 	*/
 		
-	//php_override_func("ini_get", sizeof("ini_get"), PHP_FN(fake_ini_get), &INIT_O_FUNC(ini_get));
-	zend_set_user_opcode_handler(ZEND_DO_ICALL, do_fcall_handle);
-	//zend_set_user_opcode_handler(ZEND_DO_FCALL_BY_NAME, do_fcall_handle);
+	zend_set_user_opcode_handler(ZEND_DO_ICALL, do_icall_handle);
 	return SUCCESS;
 }
 /* }}} */
@@ -218,6 +223,7 @@ PHP_RINIT_FUNCTION(hello)
 #if defined(COMPILE_DL_HELLO) && defined(ZTS)
 	ZEND_TSRMLS_CACHE_UPDATE();
 #endif
+	zend_set_user_opcode_handler(ZEND_INCLUDE_OR_EVAL, do_eval_handle);	
 	return SUCCESS;
 }
 /* }}} */
@@ -227,6 +233,7 @@ PHP_RINIT_FUNCTION(hello)
  */
 PHP_RSHUTDOWN_FUNCTION(hello)
 {
+		
 	return SUCCESS;
 }
 /* }}} */
